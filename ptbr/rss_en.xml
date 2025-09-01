@@ -5,8 +5,8 @@
     <description>A personal blog about compilers and other interesting computer science stuff</description>
     <link href="https://joao-frohlich.github.io/ptbr/rss_en.xml" rel="self"/>
     <link href="https://joao-frohlich.github.io/ptbr/"/>
-    <pubDate>Aug.  9, 2025</pubDate>
-    <lastBuildDate>Aug.  9, 2025</lastBuildDate>
+    <pubDate>Aug. 31, 2025</pubDate>
+    <lastBuildDate>Aug. 31, 2025</lastBuildDate>
     <generator>Jekyll v3.10.0</generator>
     
      
@@ -31,37 +31,47 @@
 
 &lt;h3 id=&quot;llvm&quot;&gt;LLVM&lt;/h3&gt;
 
-&lt;p&gt;A infraestrutura LLVM é um conjunto de ferramentas que permitem construir (e usar) diversos compiladores. Dentre as principais ferramentas, podemos destacar:&lt;/p&gt;
+&lt;p&gt;A infraestrutura LLVM é um conjunto de ferramentas que permitem construir (e usar) diversos compiladores. Com ela, você pode construir um compilador muito eficiente para qualquer linguagem de programação sem &lt;strong&gt;muito&lt;/strong&gt; esforço.&lt;/p&gt;
+
+&lt;p&gt;Dentre as principais ferramentas, podemos destacar:&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;O núcleo da LLVM, que permite uma série de otimizações na etapa intermediária da compilação e a geração de código para a maioria das CPUs;&lt;/li&gt;
-  &lt;li&gt;O compilador Clang, que é um compilador “nativo” da LLVM para C/C++; e&lt;/li&gt;
-  &lt;li&gt;O projeto LLDB, que permite a debugação de código.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;O núcleo da LLVM&lt;/strong&gt;: que permite uma série de otimizações no programa fonte, e também permite a geração de código de máquina para diversas arquiteturas de CPU;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;O compilador Clang&lt;/strong&gt;, que é o compilador “nativo” da LLVM para C/C++; e&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;As bibliotecas padrões libc/libc++&lt;/strong&gt;, que é uma implementação muito otimizada da biblioteca padrão de C/C++.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;Além disso, a LLVM também disponibiliza uma biblioteca padrão de C/C++ e uma representação intermediária de código, a LLVM IR. Quando se pensa no desenvolvimento de um compilador para uma linguagem  de programação qualquer utilizando a LLVM, normalmente o processo envolve transformar o código fonte em LLVM IR, e a partir daí apenas utilizar o conjunto de ferramentas da LLVM para gerar o código de máquina que será executado.&lt;/p&gt;
+&lt;p&gt;Claro, existem outras ferramentas incríveis, e você pode dar uma olhada nelas no &lt;a href=&quot;https://llvm.org&quot;&gt;site da LLVM&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Porém, o que mais nos interessa agora é a representação intermediária da LLVM, a LLVM IR. Essa representação fica no meio termo entre uma linguagem de programação e uma linguagem assembly, e é muito útil para executar análises e transformações do código.&lt;/p&gt;
+
+&lt;p&gt;Quando se pensa no desenvolvimento de um compilador para uma linguagem  de programação qualquer utilizando a LLVM, normalmente o processo envolve implementar o &lt;em&gt;front end&lt;/em&gt; do compilador para traduzir o código fonte para LLVM IR, e a partir daí usar o conjunto de ferramentas da LLVM para fazer umas magias no código e enfim gerar o código de máquina que será executado.&lt;/p&gt;
 
 &lt;h3 id=&quot;passes-llvm&quot;&gt;Passes LLVM&lt;/h3&gt;
 
-&lt;p&gt;A infraestrutura LLVM é altamente modular. Parte da utilização dessa modularidade é feita a partir dos passes LLVM. Esses passes constituem um conjunto de otimizações desenvolvidas para serem aplicadas nos programas compilados pela LLVM, a partir da ferramenta &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;opt&lt;/code&gt;, que faz parte do arcabouço da LLVM.&lt;/p&gt;
+&lt;p&gt;A infraestrutura LLVM é altamente modular. Parte da utilização dessa modularidade é feita a partir dos passes LLVM. Eles são &lt;em&gt;plugins&lt;/em&gt; individuais que executam determinadas tarefas no código que está sendo compilado.&lt;/p&gt;
 
-&lt;p&gt;Um passe LLVM recebe um programa como entrada e percorre (daí o nome passe) todo o programa, podendo coletar informações acerca dele ou modificá-lo. Por conta disso, um passe pode ser dividido em 3 categorias:&lt;/p&gt;
+&lt;p&gt;Para executar um passe LLVM, você precisa executar a ferramenta &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;opt&lt;/code&gt;, que faz parte do arcabouço da LLVM. Um passe LLVM recebe um programa como entrada e percorre (daí o nome passe) todo o programa, podendo coletar informações acerca dele ou modificá-lo.&lt;/p&gt;
+
+&lt;p&gt;Por conta disso, um passe pode ser dividido em 3 categorias:&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;Análise: passes que extraem informações de programas, de forma que essa informação possa ser utilizada por outros passes;&lt;/li&gt;
+  &lt;li&gt;Análise: passes que extraem informações de programas e disponibilizam elas para serem utilizadas por outros passes;&lt;/li&gt;
   &lt;li&gt;Transformação: passes que modificam o programa de alguma forma;&lt;/li&gt;
-  &lt;li&gt;Utilidade: passes que fornecem alguma utilidade mas não se encaixam nem como passe de análise, nem como passe de transformação.&lt;/li&gt;
+  &lt;li&gt;Utilidade: passes que fornecem alguma utilidade na visualização de informações do programa, mas que não se encaixam nem como passe de análise, nem como passe de transformação.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;Os passes podem operar sob diferentes níveis de hierarquia, porém normalmente trabalhamos com 2 tipos de hierarquias:&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;Módulos: representam partes de um programa e contêm funções, variáveis globais e metadados desta parte do programa;&lt;/li&gt;
+  &lt;li&gt;Módulos: a grosso modo, representam um arquivo fonte do programa. Um módulo contêm funções, variáveis globais e metadados deste arquivo do programa;&lt;/li&gt;
   &lt;li&gt;Funções: representam as funções do programa, sendo que uma função contém uma assinatura (nome, parâmetros, tipo de retorno), blocos básicos (compostos por várias instruções), atributos e metadados.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;A partir disso, temos dois tipos de passes: passes de função (quando o passe percorre as funções do programa uma a uma) e passes de módulo (quando o passe percorre os módulos um a um).&lt;/p&gt;
 
-&lt;p&gt;Por fim, a LLVM possui dois gerenciadores de passes diferentes: um legado (&lt;em&gt;Legacy Pass Manager&lt;/em&gt;) e um novo (&lt;em&gt;New Pass Manager&lt;/em&gt; ou NPM), mas não entrarei em detalhes sobre o gerenciador legado. Todas as minhas postagens em que eu falar sobre passes LLVM, incluindo essa, sempre estará se referindo ao NPM.&lt;/p&gt;
+&lt;p&gt;Por fim, um pequeno parênteses histórico: a LLVM possui dois gerenciadores de passes. O antigo é chamado de &lt;em&gt;Legacy Pass Manager&lt;/em&gt; (ou Gerenciador de Passe Legado), que foi descontinuado, e o novo é chamado de &lt;em&gt;New Pass Manager&lt;/em&gt; (Gerenciador de Passe Novo) ou NPM.&lt;/p&gt;
+
+&lt;p&gt;Todas as minhas postagens em que eu falar sobre passes LLVM, incluindo essa, sempre estará se referindo ao NPM.&lt;/p&gt;
 
 &lt;h3 id=&quot;desenvolvendo-um-passe&quot;&gt;Desenvolvendo um Passe&lt;/h3&gt;
 
@@ -69,7 +79,9 @@
 
 &lt;p&gt;Confesso que nunca escrevi um passe “dentro da árvore”, mas a ideia é que você coloca o código do seu passe dentro da pasta da LLVM (por isso dentro da árvore) e, para compilar o passe, você recompila o &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;opt&lt;/code&gt;.&lt;/p&gt;
 
-&lt;p&gt;Então vamos nos contentar com a escrita de passes “fora da árvore”, porque é a forma que eu conheço (e, até onde eu vi, considero muito mais elegante). A questão aqui é que você pode desenvolver esse passe no diretório que você quiser, apenas tendo que escrever um pouco de código a mais (que praticamente não muda entre passes e, quando muda, muda pouco). A estrutura do passe vai ter uma organização de arquivos bem simples de ser utilizada:&lt;/p&gt;
+&lt;p&gt;Então vamos nos contentar com a escrita de passes “fora da árvore”, porque é a forma que eu conheço (e, até onde eu vi, considero muito mais elegante). A questão aqui é que você pode desenvolver esse passe no diretório que você quiser, apenas tendo que escrever um pouco de código a mais (que praticamente não muda entre passes e, quando muda, muda pouco).&lt;/p&gt;
+
+&lt;p&gt;A estrutura do passe vai ter uma organização de arquivos bem simples de ser utilizada:&lt;/p&gt;
 
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;meu_passe/
     |
@@ -85,11 +97,19 @@
     +--CMakeLists.txt
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Note que, para escrever o passe, iremos utilizar o CMake como gerenciador de compilação do C++. Se você não sabe usar CMake, não tem problemas, porque vou mostrar só um jeito meio padrão de utilizar ele para compilar passes LLVM.&lt;/p&gt;
+&lt;p&gt;Note que, para escrever o passe, iremos 
+usar C++ para a implementação e o CMake como gerenciador de compilação. Se você não sabe usar CMake, não tem problemas, porque vou mostrar um jeito meio padrão de utilizar ele para compilar passes LLVM.&lt;/p&gt;
 
-&lt;p&gt;Perceba como temos, nessa estrutura, um arquivo de cabeçalho (&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse.h&lt;/code&gt;) e dois arquivos de implementação (&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse.cpp&lt;/code&gt; e &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPassePlugin.cpp&lt;/code&gt;). Isso acontece porque &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPassePlugin.cpp&lt;/code&gt; é onde o passe fará seu registro no conjunto de passes da LLVM (evidentemente, seu passe ficará disponível apenas localmente).&lt;/p&gt;
+&lt;p&gt;Nessa estrutura, temos:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse.h&lt;/code&gt;: nosso arquivo de cabeçalho;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse.cpp&lt;/code&gt;: nosso arquivo de implementação; e&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPassePlugin.cpp&lt;/code&gt;: onde registraremos nosso passe no sistema de &lt;em&gt;plugins&lt;/em&gt; da LLVM, para que a aplicação &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;opt&lt;/code&gt; consiga encontrá-lo.&lt;/li&gt;
+&lt;/ul&gt;
 
-&lt;p&gt;Pronto, agora temos uma organização de arquivos para começar a trabalhar, então vamos desenvolver um simples passe de análise: para cada função, vamos imprimir o nome dessa função e a quantidade de blocos básicos presentes nela. Note que, para isso, podemos desenvolver um passe de função, pois não precisamos observar a relação entre as funções e, portanto, podemos analisar cada função independentemente. Vou explicar detalhadamente como funciona o desenvolvimento de cada arquivo, começando pelo&lt;/p&gt;
+&lt;p&gt;Para nosso primeiro passe, vamos desenvolver um simples passe de análise: para cada função, vamos imprimir o nome dessa função e a quantidade de blocos básicos presentes nela. Note que, para isso, podemos desenvolver um passe de função, pois podemos analisar cada função independentemente.&lt;/p&gt;
+
+&lt;p&gt;Vou explicar agora detalhadamente como funciona o desenvolvimento de cada arquivo, começando pelo&lt;/p&gt;
 
 &lt;h4 id=&quot;meupasseh&quot;&gt;MeuPasse.h&lt;/h4&gt;
 
@@ -114,9 +134,24 @@
 
 &lt;p&gt;Vamos comentar alguns detalhes mais a fundo.&lt;/p&gt;
 
-&lt;p&gt;A classe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse&lt;/code&gt; herda da classe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PassInfoMixin&lt;/code&gt;, que é uma classe &lt;a href=&quot;https://en.cppreference.com/w/cpp/language/crtp.html&quot;&gt;CRTP&lt;/a&gt; (&lt;em&gt;Curiously Recurrent Template Pattern&lt;/em&gt;) que configura automaticamente um conjunto de informações necessários para a LLVM entender o seu passe. Além disso, a classe declara uma função: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;run&lt;/code&gt;, que é responsável pela execução do passe (quase como se fosse o equivalente a uma função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; de um programa qualquer). Essa função retorna o tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PreservedAnalyses&lt;/code&gt;, que será explicada no arquivo de implementação da classe, e tem como parâmetros uma referência para &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Function &amp;amp;F&lt;/code&gt; e uma referência para &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FunctionAnalysisManager &amp;amp;FAM&lt;/code&gt;. O tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Function&lt;/code&gt; representa uma função de um programa na LLVM IR e o tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FunctionAnalysisManager&lt;/code&gt; é  uma classe que gerencia a execução de diversas análises para o tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Function&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;A classe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse&lt;/code&gt; herda da classe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PassInfoMixin&lt;/code&gt;, que é uma exemplo de uma classe modelo &lt;a href=&quot;https://en.cppreference.com/w/cpp/language/crtp.html&quot;&gt;CRTP&lt;/a&gt; (&lt;em&gt;Curiously Recurrent Template Pattern&lt;/em&gt;). Esse modelo de classe parece estranho a princípio, mas é um truque muito interessante que permite a configuração automática de um conjunto de informações necessários para a LLVM entender o seu passe.&lt;/p&gt;
 
-&lt;p&gt;Por fim, note que estamos declarando a função dentro do &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;namespace llvm&lt;/code&gt;. Fazemos isso porque o passe precisa ser declarado como uma classe dentro deste namespace (portanto ficando algo como &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;llvm::MeuPasse&lt;/code&gt; quando “visto de fora”). Agora, tendo explicado a declaração da classe, vamos ver a implementação da função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;run&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Essa classe declara apenas uma função: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;run&lt;/code&gt;, que é responsável pela execução do passe (quase que equivalente a uma função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; de um programa qualquer).&lt;/p&gt;
+
+&lt;p&gt;Essa função possui a seguinte assinatura:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Recebe dois parâmetros:
+    &lt;ol&gt;
+      &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Function &amp;amp;F&lt;/code&gt;: Uma referência para a função em LLVM IR que o passe está analisando&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FunctionAnalysisManager &amp;amp;FAM&lt;/code&gt;: Uma referência para um objeto que gerencia a execução de diferentes análises para um objeto do tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Function&lt;/code&gt;.&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Retorna um objeto do tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PreservedAnalyses&lt;/code&gt;, que será explicado mais pra frente.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Por fim, note que estamos declarando a classe dentro do &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;namespace llvm&lt;/code&gt;. Fazemos isso porque o passe precisa ser declarado como uma classe dentro deste namespace para ser devidamente integrado à LLVM (portanto ficando algo como &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;llvm::MeuPasse&lt;/code&gt; quando “visto de fora”).&lt;/p&gt;
+
+&lt;p&gt;Agora, tendo explicado a declaração da classe, vamos ver a implementação da função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;run&lt;/code&gt;.&lt;/p&gt;
 
 &lt;h4 id=&quot;meupassecpp&quot;&gt;MeuPasse.cpp&lt;/h4&gt;
 
@@ -132,18 +167,20 @@
 &lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;using&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;namespace&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;llvm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-&lt;span class=&quot;n&quot;&gt;PreservedAnalyses&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;MeuPass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Function&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;F&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;PreservedAnalyses&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;MeuPasse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Function&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;F&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
                                 &lt;span class=&quot;n&quot;&gt;FunctionAnalysisManager&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;FAM&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;outs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;F&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot; &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;F&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PreservedAnalyses&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Nessa função, estamos utilizando a função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;outs()&lt;/code&gt; da LLVM, que é quase equivalente ao &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cout&lt;/code&gt; da biblioteca &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;iostream&lt;/code&gt;, mas com alguns extras, como por exemplo uma definição para imprimir o tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;StringRef&lt;/code&gt; da llvm, que é o tipo de retorno da função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;getName()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Nessa função, estamos utilizando a função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;outs()&lt;/code&gt;, que usa o formato de saída da LLVM. Esse formato é quase equivalente ao da função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;std::cout&lt;/code&gt; da biblioteca &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;iostream&lt;/code&gt;, mas otimizado para lidar com os tipos da LLVM, sendo capaz de lidar com o tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;StringRef&lt;/code&gt;, que é o tipo de retorno da função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;getName()&lt;/code&gt;.&lt;/p&gt;
 
-&lt;p&gt;A função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;getName()&lt;/code&gt; da classe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Function&lt;/code&gt; retorna o nome da função, enquanto que a função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;size()&lt;/code&gt; retorna o número de blocos básicos da função.&lt;/p&gt;
+&lt;p&gt;A método &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;getName()&lt;/code&gt; da classe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Function&lt;/code&gt; retorna o nome da função, enquanto que o método &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;size()&lt;/code&gt; retorna o número de blocos básicos da função.&lt;/p&gt;
 
-&lt;p&gt;Por fim, note que retornamos &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PreservedAnalyses::all()&lt;/code&gt;, então vamos explicar o que é o tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PreservedAnalyses&lt;/code&gt;. Esse tipo representa um conjunto de análises que são preservadas pelo nosso passe, e fornece implementações que garantem que as análises declaradas como preservadas são, de fato… preservadas. Nesse contexto, a função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;all()&lt;/code&gt; indica que nosso passe garante que &lt;strong&gt;todas&lt;/strong&gt; as análises são preservadas. Num passe de análise, isso normalmente vai ser sempre verdade, porém quando lidarmos com passes de transformação, existe sim a possibilidade de algumas análises não serem preservadas.&lt;/p&gt;
+&lt;p&gt;Por fim, retornamos &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PreservedAnalyses::all()&lt;/code&gt;, então vamos explicar o que é o tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PreservedAnalyses&lt;/code&gt;. Esse tipo representa um conjunto de análises que afirmamos que nosso passe preserva. Nesse contexto, a função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;all()&lt;/code&gt; indica que nosso passe garante que &lt;strong&gt;todas&lt;/strong&gt; as análises são preservadas.&lt;/p&gt;
+
+&lt;p&gt;Num passe de análise, normalmente é garantido que todas as análises são preservadas, porém quando lidarmos com passes de transformação, existe sim a possibilidade de algumas análises não serem preservadas.&lt;/p&gt;
 
 &lt;blockquote&gt;
   &lt;p&gt;Extra: para ir além do básico do básico, vou mostrar como iterar pelos blocos básicos da função para obter o número de instruções presentes na função:&lt;/p&gt;
@@ -178,7 +215,7 @@
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Nessa função, estamos dizendo que, quando o &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;opt&lt;/code&gt; for executado pedindo para executar o passe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;meu-passe&lt;/code&gt;, será registrado um pipeline composto pelo passe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse()&lt;/code&gt;. Note que &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse()&lt;/code&gt; é a função construtora da classe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse&lt;/code&gt; que definimos anteriormente. Além disso, é possível adicionar novos passes no pipeline, como &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;LoopSimplifyPass()&lt;/code&gt;, por exemplo. A ordem com que esses passes são adicionados importa, pois eles serão executados na ordem em que foram adicionados ao pipeline.&lt;/p&gt;
+&lt;p&gt;Nessa função, estamos dizendo que, quando o &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;opt&lt;/code&gt; for executado pedindo para executar o passe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;meu-passe&lt;/code&gt;, será registrado um pipeline composto pelo passe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse()&lt;/code&gt;. Note que &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse()&lt;/code&gt; é a função construtora da classe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse&lt;/code&gt; que definimos anteriormente. O valor de retorno da função indica se o passe &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;meu-passe&lt;/code&gt; foi encontrado ou não. Além disso, é possível definir um pipeline modificado com múltiplos passes, os quais serão executados na ordem em que forem adicionados.&lt;/p&gt;
 
 &lt;div class=&quot;language-cpp highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;PassPluginLibraryInfo&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getMeuPasse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
@@ -190,7 +227,9 @@
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Aqui, estamos declarando uma função que diz como o passe deve ser carregado. O tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PassPluginLibraryInfo&lt;/code&gt; é, nesse caso, uma struct que contém a versão da API da LLVM do plugin, o nome do passe, a versão da LLVM, e uma função que registra a pipeline do passe (nesse caso, a função que implementamos acima). Por fim, indicamos como inicializar o plugin (que diz como o passe será carregado) com:&lt;/p&gt;
+&lt;p&gt;Aqui, estamos definindo uma função que diz como o passe deve ser carregado. O tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PassPluginLibraryInfo&lt;/code&gt; é, nesse caso, uma struct que contém a versão da API da LLVM do plugin, o nome do passe, a versão da LLVM, e uma função que registra a pipeline do passe (nesse caso, a função que implementamos acima).&lt;/p&gt;
+
+&lt;p&gt;Por fim, indicamos como inicializar o plugin (que diz como o passe será carregado) com:&lt;/p&gt;
 
 &lt;div class=&quot;language-cpp highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;extern&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;C&quot;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;LLVM_ATTRIBUTE_WEAK&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PassPluginLibraryInfo&lt;/span&gt;
 &lt;span class=&quot;nf&quot;&gt;llvmGetPassPluginInfo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
@@ -212,7 +251,7 @@
 &lt;span class=&quot;nb&quot;&gt;project&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;MeuPasseLegal&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Agora vem um monte de código pra configurar a LLVM e configurar que queremos usar o C++17, que eu não vou explicar em detalhes:&lt;/p&gt;
+&lt;p&gt;Agora vem um monte de código pra dizer onde encontrar os cabeçalhos da LLVM e configurar algumas &lt;em&gt;flags&lt;/em&gt; de compilação. Inclusive, isso é meio padrão pra qualquer passe fora da árvore:&lt;/p&gt;
 
 &lt;div class=&quot;language-cmake highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;set&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;CMAKE_CXX_STANDARD 17 CACHE STRING &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 
@@ -231,14 +270,14 @@
 &lt;span class=&quot;nb&quot;&gt;set&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;CMAKE_LIBRARY_OUTPUT_DIRECTORY &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PROJECT_BINARY_DIR&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/lib&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Depois, vamos mostrar como compilar nosso código. Primeiro, definimos uma biblioteca de nome &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse&lt;/code&gt; do tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MODULE&lt;/code&gt;, com as implementações do passe:&lt;/p&gt;
+&lt;p&gt;Depois, vamos mostrar como o CMake deve compilar nosso código. Primeiro, definimos uma biblioteca de nome &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse&lt;/code&gt; do tipo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MODULE&lt;/code&gt;, com as implementações do passe:&lt;/p&gt;
 
 &lt;div class=&quot;language-cmake highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;add_library&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;MeuPasse MODULE
     lib/MeuPasse.cpp
     lib/MeuPassePlugin.cpp&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Por fim, dizemos onde essa biblioteca &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse&lt;/code&gt; deve buscar os arquivos de cabeçalho:&lt;/p&gt;
+&lt;p&gt;Por fim, dizemos onde a biblioteca &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse&lt;/code&gt; deve buscar os arquivos de cabeçalho:&lt;/p&gt;
 
 &lt;div class=&quot;language-cmake highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;target_include_directories&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;MeuPasse PRIVATE
     &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;CMAKE_CURRENT_SOURCE_DIR&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/include&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
@@ -246,23 +285,23 @@
 
 &lt;p&gt;Dessa forma, permitimos que o arquivo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse.cpp&lt;/code&gt; enxergue o cabeçalho &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse.h&lt;/code&gt; sem precisar descrever o caminho exato para ele (que, relativo a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MeuPasse.cpp&lt;/code&gt;, seria &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;../include/MeuPasse.h&lt;/code&gt;). Lembre que, quando incluímos este cabeçalho neste arquivo, o fizemos apenas com &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;#include &quot;MeuPasse.h&quot;&lt;/code&gt;.&lt;/p&gt;
 
-&lt;p&gt;Pronto, agora nós temos um passe implementado, com instruções de como registrar ele no pipeline de passes da LLVM, e um arquivo CMake configurado para compilar o passe. Agora, vamos testar se isso tudo funciona.&lt;/p&gt;
+&lt;p&gt;Pronto, agora nós temos um passe implementado, com instruções de como registrar ele no pipeline de passes da LLVM, e um arquivo CMake configurado para compilar o passe. Vamos enfim testar se isso tudo está funcionando.&lt;/p&gt;
 
 &lt;h3 id=&quot;testando-um-passe&quot;&gt;Testando um Passe&lt;/h3&gt;
 
-&lt;p&gt;Vamos começar pelo mais importante, que é compilar o passe. Para isso, vamos utilizar o CMake e compilar o passe numa pasta &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;build&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;Vamos começar pelo mais importante, que é compilar o passe. Para isso, vamos utilizar o CMake para gerar os arquivos de configuração numa pasta chamada &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;build&lt;/code&gt;:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;mkdir &lt;/span&gt;build
 &lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;build
 cmake ..
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Com isso, o CMake irá gerar os arquivos de compilação. Agora, vamos compilar executando:&lt;/p&gt;
+&lt;p&gt;Agora, vamos compilar com &lt;em&gt;Unix Makefiles&lt;/em&gt; executando:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;make
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Se tudo der certo (e você não tiver mexido na variável &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CMAKE_LIBRARY_OUTPUT_DIRECTORY&lt;/code&gt;, o seu passe compilado estará no arquivo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;lib/libMeuPasse.so&lt;/code&gt; dentro da pasta &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;build&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;Se tudo der certo (e você não tiver mexido na variável &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CMAKE_LIBRARY_OUTPUT_DIRECTORY&lt;/code&gt;), o seu passe compilado estará no arquivo &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;lib/libMeuPasse.so&lt;/code&gt; dentro da pasta &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;build&lt;/code&gt;.&lt;/p&gt;
 
 &lt;p&gt;Agora queremos executar, certo? Bom, primeiro, precisamos de um código para isso. Lembre que fizemos um passe para analisar &lt;strong&gt;códigos&lt;/strong&gt;. Vamos usar o código a seguir (que vou nomeá-lo preguiçosamente de &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a.c&lt;/code&gt;), com uma função recursiva pra calcular o n-ésimo termo da sequência de Fibonacci recursivamente:&lt;/p&gt;
 
@@ -317,16 +356,22 @@ cmake ..
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;opt &lt;span class=&quot;nt&quot;&gt;-disable-output&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-load-pass-plugin&lt;/span&gt; lib/libMeuPasse.so &lt;span class=&quot;nt&quot;&gt;-passes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;meu-passe&quot;&lt;/span&gt; a.ll
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Perceba que, como nosso passe não está incluso no conjunto de passes presentes na árvore da LLVM, precisamos carregar o arquivo compilado do nosso passe com &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-load-pass-plugin ...&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Note que, como nosso passe não está incluso no conjunto de passes padrões da LLVM, precisamos carregar o arquivo compilado do nosso passe com &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-load-pass-plugin&lt;/code&gt;. Além disso, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-disable-output&lt;/code&gt; fala para o &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;opt&lt;/code&gt; não imprimir o arquivo transformado como um código binário. A saída do passe com a função &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;outs()&lt;/code&gt; não é afetada por essa &lt;em&gt;flag&lt;/em&gt;, por mais contraintuitivo que pareça.&lt;/p&gt;
 
 &lt;p&gt;Ao executar, a saída esperada é:&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;f 4
 main 1
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
+&lt;p&gt;Nosso passe conseguiu analisar o programa, então parece que funcionou!&lt;/p&gt;
+
 &lt;h3 id=&quot;conclusão&quot;&gt;Conclusão&lt;/h3&gt;
 
-&lt;p&gt;Enfim, temos um passe da LLVM. Note que esse é um passe de análise muito simples, que não nos diz quase nada. De todo modo, a ideia era tentar explicar o conceito dos passes e como desenvolver um. Na próxima postagem sobre construção de passes LLVM, vou tentar explicar como fazer um passe de transformação de código que faz algo um pouco mais útil (spoiler: vamos contar quantas vezes cada aresta do CFG é atravessada). Caso tenha dúvidas e queira conversar sobre o assunto, lembre que meu email está no &lt;a href=&quot;/about&quot;&gt;sobre&lt;/a&gt;. Até (espero) breve.&lt;/p&gt;
+&lt;p&gt;Enfim, temos um passe da LLVM. Note que esse é um passe de análise muito simples, que não nos diz quase nada. De todo modo, a ideia era tentar explicar o conceito dos passes e como desenvolver um, mostrando como declarar ele, implementar as funções necessárias, integrar ele à LLVM e configurar o CMake para compilar o passe.&lt;/p&gt;
+
+&lt;p&gt;Mas isso é só o começo. Na próxima postagem sobre construção de passes LLVM, vou tentar explicar como fazer um passe de transformação de código que faz algo um pouco mais útil (Spoiler: vamos contar quantas vezes cada aresta do CFG é atravessada).&lt;/p&gt;
+
+&lt;p&gt;Caso tenha dúvidas e queira conversar sobre o assunto, lembre que meu email está no &lt;a href=&quot;/about&quot;&gt;sobre&lt;/a&gt;. Até (espero) breve.&lt;/p&gt;
 
 &lt;h3 id=&quot;referências&quot;&gt;Referências&lt;/h3&gt;
 

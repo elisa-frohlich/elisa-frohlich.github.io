@@ -1,12 +1,355 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.10.0">Jekyll</generator><link href="https://joao-frohlich.github.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://joao-frohlich.github.io/" rel="alternate" type="text/html" /><updated>2025-08-09T13:31:08-03:00</updated><id>https://joao-frohlich.github.io/feed.xml</id><title type="html">{“en”=&amp;gt;”João Vitor Fröhlich”, “ptbr”=&amp;gt;”João Vitor Fröhlich”}</title><subtitle>{&quot;en&quot;=&gt;&quot;A personal blog about compilers and other interesting computer science stuff&quot;, &quot;ptbr&quot;=&gt;&quot;Um blog pessoal sobre compiladores e algumas outras coisas interessantes&quot;}</subtitle><entry xml:lang="en"><title type="html">Writing an LLVM Pass</title><link href="https://joao-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass.html" rel="alternate" type="text/html" title="Writing an LLVM Pass" /><published>2025-08-09T13:00:00-03:00</published><updated>2025-08-09T13:00:00-03:00</updated><id>https://joao-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass</id><content type="html" xml:base="https://joao-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass.html"><![CDATA[<h3 id="a-very-brief-post">A Very Brief Post?</h3>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.10.0">Jekyll</generator><link href="https://joao-frohlich.github.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://joao-frohlich.github.io/" rel="alternate" type="text/html" /><updated>2025-08-31T22:14:04-03:00</updated><id>https://joao-frohlich.github.io/feed.xml</id><title type="html">{“en”=&amp;gt;”João Vitor Fröhlich”, “ptbr”=&amp;gt;”João Vitor Fröhlich”}</title><subtitle>{&quot;en&quot;=&gt;&quot;A personal blog about compilers and other interesting computer science stuff&quot;, &quot;ptbr&quot;=&gt;&quot;Um blog pessoal sobre compiladores e algumas outras coisas interessantes&quot;}</subtitle><entry xml:lang="en"><title type="html">Writing an LLVM Pass</title><link href="https://joao-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass.html" rel="alternate" type="text/html" title="Writing an LLVM Pass" /><published>2025-08-09T13:00:00-03:00</published><updated>2025-08-09T13:00:00-03:00</updated><id>https://joao-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass</id><content type="html" xml:base="https://joao-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass.html"><![CDATA[<h3 id="introduction">Introduction</h3>
 
-<p>Yeah, I know it’s been some time since the last (and basically only) post, and then I come here and write few lines in English. But this is an important topic to cover, since it’s the base of a lot of things I have in mind to talk about.</p>
+<p>After a long time since the <a href="/compilers/2024/11/03/intermediate-representation.html">last</a> post (and only post at my blog), it’s time to write something new in here. Today, we’re going to address a more practical topic.</p>
 
-<p>The Portuguese version of this blog post demanded some time to write, and I judged it was more important to have it done before the English version, since there are very few Portuguese resources about the subject. So I’ll update this page some day, when I have some time (and will) to translate that post.</p>
+<p>In this post, I’m gonna explain (or at least <em>try</em> to) how to implement a pass for the LLVM infrastructure. I know that there are many great tutorials available online, but that’s not the case for Portuguese only readers. Since I already written the Portuguese version of this post, I figured it wouldn’t be that big of an effort to just translate it here.</p>
 
-<p>For now, there’s this very good tutorial at the <a href="https://llvm.org/docs/WritingAnLLVMNewPMPass.html">LLVM documentation</a> that pretty much covers the topics I’ve covered there.</p>
+<p>This post is written for those who have little to no knowledge on the compilers field, but are interested on it. However, it’s expected that the reader is familiar with C++ to understand the implementations covered in this post.</p>
 
-<p>If, by some reason, I write the next blog post before translating it (the next one will be bilingual for sure), know that I will write about creating a transformation pass in LLVM for instrumenting a program.</p>]]></content><author><name></name></author><category term="LLVM" /><summary type="html"><![CDATA[A Very Brief Post?]]></summary></entry><entry xml:lang="en"><title type="html">Introduction to Program Static Analysis - Intermediate Representation</title><link href="https://joao-frohlich.github.io/compilers/2024/11/03/intermediate-representation.html" rel="alternate" type="text/html" title="Introduction to Program Static Analysis - Intermediate Representation" /><published>2024-11-03T18:12:00-03:00</published><updated>2024-11-03T18:12:00-03:00</updated><id>https://joao-frohlich.github.io/compilers/2024/11/03/intermediate-representation</id><content type="html" xml:base="https://joao-frohlich.github.io/compilers/2024/11/03/intermediate-representation.html"><![CDATA[<h3 id="introduction">Introduction</h3>
+<p>Here’s a break down of what you’ll see here:</p>
+<ul>
+  <li>The LLVM Infrastructure;</li>
+  <li>What are LLVM passes;</li>
+  <li>How to write an LLVM pass;</li>
+  <li>How to compile and run a pass.</li>
+</ul>
+
+<p>Disclaimer: I’ve tried my best to ensure that the information written here is correct, but the <a href="https://llvm.org/docs/WritingAnLLVMNewPMPass.html">official LLVM documentation</a> is the definitive source of information and best practices.</p>
+
+<h3 id="llvm">LLVM</h3>
+
+<p>The LLVM Infrastructure is a toolkit that allows one to build (and use) a lot of compilers. With it, one can quickly make a compiler for any programming language that generates a very efficient machine code.</p>
+
+<p>Some tools that we can highlight are:</p>
+<ul>
+  <li><strong>LLVM Core:</strong> allows a lot of optimizations on the source code, and also generates machine code for most of the CPU architectures out there;</li>
+  <li><strong>clang:</strong> a native LLVM C/C++ compiler;</li>
+  <li><strong>libc and libc++:</strong> a very optimized implementation of the C/C++ standard library.</li>
+</ul>
+
+<p>Of course, there are many other tools, and you can check then on the <a href="llvm.org">LLVM website</a>.</p>
+
+<p>But what matters the most for us now is the LLVM Intermediate Representation (LLVM IR). It stays in the between of programming language and assembly, and is a great representation for running analysis and optimizations. When you engineer a compiler for some language using the LLVM, usually the process consists of creating a compiler front end for translating the source code into LLVM IR, and then use the LLVM tools for doing some magic on the program and generate a very optimized machine code for some target architecture.</p>
+
+<h3 id="llvm-passes">LLVM Passes</h3>
+
+<p>The LLVM Infrastructure is very modular. Part of using this modularization is done through the LLVM passes. They are individual plugins that performs some tasks on the code being compiled.</p>
+
+<p>To run an LLVM pass, you need to run the <code class="language-plaintext highlighter-rouge">opt</code> tool, that is part of the LLVM tool belt. A pass receives a program as input and “pass” through it, collecting information or modifying it.</p>
+
+<p>Because of this, a pass can fit into 3 different categories:</p>
+
+<ul>
+  <li>Analysis: passes that extract information about programs and make it available to be used by other passes;</li>
+  <li>Transformation: passes that modify a program in some way;</li>
+  <li>Utility: helper passes that don’t fit neither in the analysis nor in the transformation categories, but helps visualizing information.</li>
+</ul>
+
+<p>Passes can operate on different abstraction levels, but usually we work on 2 levels:</p>
+
+<ul>
+  <li>Modules: roughly speaking, represents single source files of the program. They contain functions, global variables and metadata about these source files;</li>
+  <li>Functions: represent a function of a program, containing the function signature (name, parameters, return type), basic blocks, attributes and metadata.</li>
+</ul>
+
+<p>Based on these abstraction levels, we have two types of passes: function passes (when the pass run on the functions of a program one by one) and module passes (when the pass run on the modules one by one).</p>
+
+<p>Lastly, a quick note on history: LLVM has two pass management systems. The old one is called Legacy Pass Manager (which is now deprecated), and the modern one is called New Pass Manager (NPM). All my posts about LLVM passes, including this one, will always refer to the NPM.</p>
+
+<h3 id="developing-an-llvm-pass">Developing an LLVM Pass</h3>
+
+<p>Now that we know what passes are, let’s talk about how to implement one. First, there are two different approaches for developing LLVM passes: “inside the tree” and “out of the tree”.</p>
+
+<p>I must confess that I’ve never written a pass “inside the tree”, but the idea is that you place your pass implementation inside the LLVM source code folder, together with the other passes. To compile it, you have to recompile the <code class="language-plaintext highlighter-rouge">opt</code> tool.</p>
+
+<p>Instead, let’s focus on the “out of the tree” method, which I’m familiar with (and, from my point of view, it’s far more elegant). The beautiful thing about this method is that you can implement your pass in any folder you want on your system. You just have to add some boilerplate code to make it work.</p>
+
+<p>The structure of our pass will have a simple file organization that is common throughout the out of the tree passes:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>my_pass/
+    |
+    +--include/
+    |   |
+    |   +--MyPass.h
+    |
+    +--lib/
+    |   |
+    |   +--MyPass.cpp
+    |   +--MyPassPlugin.cpp
+    |
+    +--CMakeLists.txt
+</code></pre></div></div>
+
+<p>For writing the pass, we will use C++ for the implementation and CMake for managing the build process. If you don’t know how to use CMake, no worries. I’ll show you a standard setup for using it for compiling LLVM passes.</p>
+
+<p>In this structure, we have:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">MyPass.h</code>: our header file;</li>
+  <li><code class="language-plaintext highlighter-rouge">MyPass.cpp</code>: our implementation file; and</li>
+  <li><code class="language-plaintext highlighter-rouge">MyPassPlugin.cpp</code>: where we register our pass within the LLVM Plugin system, so that the <code class="language-plaintext highlighter-rouge">opt</code> tool can find and run it.</li>
+</ul>
+
+<p>For our first pass, let’s implement a simple analysis pass: for each function, we’ll print the name of the function and the number of basic blocks that it has. Notice that, for this purpose, we can develop a function pass, because we can analyze each function independently.</p>
+
+<p>I’ll explain now how to implement each file, starting by:</p>
+
+<h4 id="mypassh">MyPass.h</h4>
+
+<p>The code of the header consists in a declaration of the class that defines the pass (this is an LLVM pass, a C++ class):</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#ifndef MY_PASS_H
+#define MY_PASS_H
+</span>
+<span class="cp">#include</span> <span class="cpf">"llvm/IR/PassManager.h"</span><span class="cp">
+</span>
+<span class="k">namespace</span> <span class="n">llvm</span> <span class="p">{</span>
+
+<span class="k">class</span> <span class="nc">MyPass</span> <span class="o">:</span> <span class="k">public</span> <span class="n">PassInfoMixin</span><span class="o">&lt;</span><span class="n">MyPass</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="n">PreservedAnalyses</span> <span class="n">run</span><span class="p">(</span><span class="n">Function</span> <span class="o">&amp;</span><span class="n">F</span><span class="p">,</span> <span class="n">FunctionAnalysisManager</span> <span class="o">&amp;</span><span class="n">FAM</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="p">}</span>
+
+<span class="cp">#endif // MY_PASS_H
+</span></code></pre></div></div>
+
+<p>Let’s dive deeper into the details.</p>
+
+<p>The class <code class="language-plaintext highlighter-rouge">MyPass</code> inherits from the class <code class="language-plaintext highlighter-rouge">PassInfoMixin&lt;MyPass&gt;</code>, which is an example of the <a href="https://en.cppreference.com/w/cpp/language/crtp.html">CRTP</a> (Curiously Recurrent Template Pattern) pattern. It looks strange at first, but it’s a trick that lets LLVM’s mix-in class automatically configure a lot of boilerplate information needed for integrating our pass into the system.</p>
+
+<p>The class have one function declaration: <code class="language-plaintext highlighter-rouge">run</code>, that is responsible for running the pass (it’s almost equivalent to a <code class="language-plaintext highlighter-rouge">main</code> function of a program).</p>
+
+<p>This function have the following signature:</p>
+<ul>
+  <li>It takes two parameters:
+    <ol>
+      <li><code class="language-plaintext highlighter-rouge">Function &amp;F</code>: A reference to the LLVM IR function the pass is currently analyzing.</li>
+      <li><code class="language-plaintext highlighter-rouge">FunctionAnalysisManager &amp;FAM</code>: A reference to an object that manages the execution of different analysis for the <code class="language-plaintext highlighter-rouge">Function</code> type.</li>
+    </ol>
+  </li>
+  <li>It returns a <code class="language-plaintext highlighter-rouge">PreservedAnalyses</code> object, that will be explained further.</li>
+</ul>
+
+<p>Another important thing to notice is that we are declaring this class inside the <code class="language-plaintext highlighter-rouge">namespace llvm</code>. That’s because the pass must be declared inside the LLVM namespace to be properly integrated (becoming <code class="language-plaintext highlighter-rouge">llvm::MyPass</code> when seen from outside).</p>
+
+<p>Now we’ll see how we implement the function <code class="language-plaintext highlighter-rouge">run</code>.</p>
+
+<h4 id="mypasscpp">MyPass.cpp</h4>
+
+<p>Remember what we want to do with our pass. For each function, we want:</p>
+<ul>
+  <li>The name of the function; and</li>
+  <li>The number of basic blocks inside it.</li>
+</ul>
+
+<p>Luckily, all this information can be easily retrieved, so the code becomes very simple:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">"MyPass.h"</span><span class="cp">
+</span>
+<span class="k">using</span> <span class="k">namespace</span> <span class="n">llvm</span><span class="p">;</span>
+
+<span class="n">PreservedAnalyses</span> <span class="n">MyPass</span><span class="o">::</span><span class="n">run</span><span class="p">(</span><span class="n">Function</span> <span class="o">&amp;</span><span class="n">F</span><span class="p">,</span>
+                                <span class="n">FunctionAnalysisManager</span> <span class="o">&amp;</span><span class="n">FAM</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">outs</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">F</span><span class="p">.</span><span class="n">getName</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">" "</span> <span class="o">&lt;&lt;</span> <span class="n">F</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">PreservedAnalyses</span><span class="o">::</span><span class="n">all</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In this function, we are using the function <code class="language-plaintext highlighter-rouge">outs()</code>, LLVM’s output stream function. This is similar to the <code class="language-plaintext highlighter-rouge">std::cout</code> function from the <code class="language-plaintext highlighter-rouge">iostream</code> library, but optimized for LLVM types, and that can handle the <code class="language-plaintext highlighter-rouge">StringRef</code> type, which is returned by the <code class="language-plaintext highlighter-rouge">getName()</code> function.</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">getName()</code> method from the class <code class="language-plaintext highlighter-rouge">Function</code> returns the name of the function being analyzed, while the <code class="language-plaintext highlighter-rouge">size()</code> method returns the number of basic blocks in that function.</p>
+
+<p>Lastly, we return <code class="language-plaintext highlighter-rouge">PreservedAnalysis::all()</code>, so let’s finally explain what is this <code class="language-plaintext highlighter-rouge">PreservedAnalysis</code> type. It represents a set of analysis that we are guaranteeing that our pass preserves. In this context, the function <code class="language-plaintext highlighter-rouge">all()</code> says that our pass guarantee that <strong>every</strong> analysis is preserved. On an analysis pass, this should be always true, but when we deal with transformation passes, then there is a chance that not all the analyses are preserved.</p>
+
+<h4 id="mypassplugincpp">MyPassPlugin.cpp</h4>
+
+<p>Now that our pass is implemented, we need to register it within LLVM, in order to be able to run it. For this, we’ll write a bunch of boilerplate code to connect our <code class="language-plaintext highlighter-rouge">MyPass</code> class to the <code class="language-plaintext highlighter-rouge">opt</code> tool.</p>
+
+<p>First, the necessary headers:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">"MyPass.h"</span><span class="cp">
+#include</span> <span class="cpf">"llvm/Passes/PassBuilder.h"</span><span class="cp">
+#include</span> <span class="cpf">"llvm/Passes/PassPlugin.h"</span><span class="cp">
+</span>
+<span class="k">using</span> <span class="k">namespace</span> <span class="n">llvm</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Where we don’t have anything special to comment. Next, the function that register the pass pipeline:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">bool</span> <span class="nf">registerPipeline</span><span class="p">(</span><span class="n">StringRef</span> <span class="n">Name</span><span class="p">,</span> <span class="n">FunctionPassManager</span> <span class="o">&amp;</span><span class="n">FPM</span><span class="p">,</span>
+                      <span class="n">ArrayRef</span><span class="o">&lt;</span><span class="n">PassBuilder</span><span class="o">::</span><span class="n">PipelineElement</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">Name</span> <span class="o">==</span> <span class="s">"my-pass"</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">FPM</span><span class="p">.</span><span class="n">addPass</span><span class="p">(</span><span class="n">MyPass</span><span class="p">());</span>
+        <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Here, we’re saying that, when <code class="language-plaintext highlighter-rouge">opt</code> is asked to run the pass <code class="language-plaintext highlighter-rouge">my-pass</code>, a pipeline composed by <code class="language-plaintext highlighter-rouge">MyPass()</code> will be registered. Notice that <code class="language-plaintext highlighter-rouge">MyPass()</code> is the builder function of the class <code class="language-plaintext highlighter-rouge">MyPass</code> that we’ve defined previously. The return value is saying whether the pass with name <code class="language-plaintext highlighter-rouge">my-pass</code> was found or not. Also, you could add multiple passes here, creating a custom pipeline, where the order in which you add the passes is the order that they are gonna be executed in that pipeline.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">PassPluginLibraryInfo</span> <span class="nf">getMyPass</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">LLVM_PLUGIN_API_VERSION</span><span class="p">,</span> <span class="s">"my-pass"</span><span class="p">,</span>
+        <span class="n">LLVM_VERSION_STRING</span><span class="p">,</span> <span class="p">[](</span><span class="n">PassBuilder</span> <span class="o">&amp;</span><span class="n">PB</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">PB</span><span class="p">.</span><span class="n">registerPipelineParsingCallback</span><span class="p">(</span><span class="n">registerPipeline</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Now we are defining a function that says how the pass must loaded. The type <code class="language-plaintext highlighter-rouge">PassPluginLibraryInfo</code> is a struct that keeps the LLVM Plugin API version, the class name, the LLVM version and a function that registers the pass pipeline (in this case, the function we implemented above).</p>
+
+<p>Finally, we indicate how to initialize the plugin (that says how the pass is loaded) with:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">extern</span> <span class="s">"C"</span> <span class="n">LLVM_ATTRIBUTE_WEAK</span> <span class="n">PassPluginLibraryInfo</span>
+<span class="nf">llvmGetPassPluginInfo</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">getMyPass</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>With this code completed, let’s see how we are gonna compile everything.</p>
+
+<h4 id="cmakeliststxt">CMakeLists.txt</h4>
+
+<p>In order to build our pass, let’s make use of CMake for managing the process for us. I suppose that you have LLVM installed and, more specifically, compiled and installed it using CMake.</p>
+
+<p>If you don’t, I recommend following the official <a href="https://llvm.org/docs/CMake.html">tutorial</a> from LLVM.</p>
+
+<p>Let’s start the CMake file with two mandatory lines, where we define the minimum version of cmake for compiling the project and the name of the project:</p>
+
+<div class="language-cmake highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">cmake_minimum_required</span><span class="p">(</span>VERSION 3.20<span class="p">)</span>
+<span class="nb">project</span><span class="p">(</span>MyCoolPass<span class="p">)</span>
+</code></pre></div></div>
+
+<p>Then we have some boilerplate to find the LLVM libraries and to configure some compilation flags. This is standard for any out of the tree pass:</p>
+
+<div class="language-cmake highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">set</span><span class="p">(</span>CMAKE_CXX_STANDARD 17 CACHE STRING <span class="s2">""</span><span class="p">)</span>
+
+<span class="nb">set</span><span class="p">(</span>LLVM_INSTALL_DIR <span class="s2">""</span> CACHE PATH <span class="s2">"LLVM installation directory"</span><span class="p">)</span>
+<span class="nb">set</span><span class="p">(</span>LLVM_CMAKE_CONFIG_DIR <span class="s2">""</span> <span class="s2">"</span><span class="si">${</span><span class="nv">LLVM_INSTALL_DIR</span><span class="si">}</span><span class="s2">/lib/cmake/llvm/"</span><span class="p">)</span>
+<span class="nb">list</span><span class="p">(</span>APPEND CMAKE_PREFIX_PATH <span class="s2">"</span><span class="si">${</span><span class="nv">LLVM_CMAKE_CONFIG_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="nb">find_package</span><span class="p">(</span>LLVM REQUIRED CONFIG<span class="p">)</span>
+
+<span class="nb">include_directories</span><span class="p">(</span><span class="si">${</span><span class="nv">LLVM_INCLUDE_DIRS</span><span class="si">}</span><span class="p">)</span>
+
+<span class="nb">if</span><span class="p">(</span>NOT LLVM_ENABLE_RTTI<span class="p">)</span>
+    <span class="nb">set</span><span class="p">(</span>CMAKE_CXX_FLAGS <span class="s2">"</span><span class="si">${</span><span class="nv">CMAKE_CXX_FLAGS</span><span class="si">}</span><span class="s2"> -fno-rtti"</span><span class="p">)</span>
+<span class="nb">endif</span><span class="p">()</span>
+
+<span class="nb">set</span><span class="p">(</span>CMAKE_LIBRARY_OUTPUT_DIRECTORY <span class="s2">"</span><span class="si">${</span><span class="nv">PROJECT_BINARY_DIR</span><span class="si">}</span><span class="s2">/lib"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Now, let’s define how CMake should compile our pass. We create a library <code class="language-plaintext highlighter-rouge">MyPass</code> with type <code class="language-plaintext highlighter-rouge">MODULE</code> from our source files:</p>
+
+<div class="language-cmake highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">add_library</span><span class="p">(</span>MyPass MODULE
+    lib/MyPass.cpp
+    lib/MyPassPlugin.cpp<span class="p">)</span>
+</code></pre></div></div>
+
+<p>Lastly, we say to the compiler where our library <code class="language-plaintext highlighter-rouge">MyPass</code> should search for header files:</p>
+
+<div class="language-cmake highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">target_include_directories</span><span class="p">(</span>MyPass PRIVATE
+    <span class="s2">"</span><span class="si">${</span><span class="nv">CMAKE_CURRENT_SOURCE_DIR</span><span class="si">}</span><span class="s2">/include"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>In this way, we are allowing that the files <code class="language-plaintext highlighter-rouge">MyPass.cpp</code> and <code class="language-plaintext highlighter-rouge">MyPassPlugin.cpp</code> to “see” the header <code class="language-plaintext highlighter-rouge">MyPass.h</code> without having to write the exact path for it (relatively, <code class="language-plaintext highlighter-rouge">../include/MyPass.h</code>). Remember that, when including this header file, we did it with <code class="language-plaintext highlighter-rouge">#include "MyPass.h"</code>.</p>
+
+<p>Now, we have an implemented pass, with instructions on how to register it on the pass pipeline of LLVM, and a CMake file describing how to compile it. Now it’s time to test and see if everything is working.</p>
+
+<h3 id="testing-a-pass">Testing a Pass</h3>
+
+<p>Let’s start by compiling the pass. First, we’ll use CMake for generating the build files and Unix Makefiles to compile them:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir </span>build
+<span class="nb">cd </span>build
+cmake ..
+make
+</code></pre></div></div>
+
+<p>If everything is right (and you didn’t change the <code class="language-plaintext highlighter-rouge">CMAKE_LIBRARY_OUTPUT_DIRECTORY</code> variable), your compiled pass should be located at <code class="language-plaintext highlighter-rouge">build/lib/libMyPass.so</code>.</p>
+
+<p>Now we can run it, but first, we need some code for the pass to run. Remember that we made a pass that analyzes… <strong>code</strong>. Let’s use the following code (that I’m lazily naming it <code class="language-plaintext highlighter-rouge">a.c</code>), with a Fibonacci recursive function:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span>
+<span class="kt">int</span> <span class="nf">f</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span> <span class="k">return</span> <span class="n">x</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">2</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"%d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">f</span><span class="p">(</span><span class="mi">5</span><span class="p">));</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Then we compile it to LLVM IR for allowing our pass to understand it. In order to do so, we use clang with some parameters:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>clang a.c <span class="nt">-Xclang</span> <span class="nt">-disable-O0-optnone</span> <span class="nt">-S</span> <span class="nt">-emit-llvm</span> <span class="nt">-o</span> a.ll
+</code></pre></div></div>
+
+<p>The parameters <code class="language-plaintext highlighter-rouge">-Xclang -disable-O0-optnone</code> prevent LLVM from marking the functions of this code as non-optimizable, which would block our pass from running on them. The parameters <code class="language-plaintext highlighter-rouge">-S -emit-llvm</code> makes clang spill out the code in LLVM IR instead of producing a binary code. The generated code should look like:</p>
+
+<div class="language-llvm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">...</span>
+<span class="k">define</span> <span class="k">dso_local</span> <span class="kt">i32</span> <span class="vg">@f</span><span class="p">(</span><span class="kt">i32</span> <span class="err">noundef</span> <span class="nv">%0</span><span class="p">)</span> <span class="vg">#0</span> <span class="p">{</span>
+  <span class="p">...</span>
+  <span class="k">br</span> <span class="kt">i1</span> <span class="nv">%5</span><span class="p">,</span> <span class="kt">label</span> <span class="nv">%6</span><span class="p">,</span> <span class="kt">label</span> <span class="nv">%8</span>
+
+<span class="m">6</span><span class="err">:</span>  <span class="c1">; preds = %1</span>
+  <span class="p">...</span>
+  <span class="k">br</span> <span class="kt">label</span> <span class="nv">%16</span>
+
+<span class="m">8</span><span class="err">:</span>  <span class="c1">; preds = %1</span>
+  <span class="p">...</span>
+  <span class="k">br</span> <span class="kt">label</span> <span class="nv">%16</span>
+
+<span class="m">16</span><span class="err">:</span> <span class="c1">; preds = %8, %6</span>
+  <span class="nv">%17</span> <span class="p">=</span> <span class="k">load</span> <span class="kt">i32</span><span class="p">,</span> <span class="err">ptr</span> <span class="nv">%2</span><span class="p">,</span> <span class="k">align</span> <span class="m">4</span>
+  <span class="k">ret</span> <span class="kt">i32</span> <span class="nv">%17</span>
+<span class="p">}</span>
+
+<span class="k">define</span> <span class="k">dso_local</span> <span class="kt">i32</span> <span class="vg">@main</span><span class="p">()</span> <span class="vg">#0</span> <span class="p">{</span>
+  <span class="p">...</span>
+  <span class="k">ret</span> <span class="kt">i32</span> <span class="m">0</span>
+<span class="p">}</span>
+
+<span class="p">...</span>
+</code></pre></div></div>
+
+<p>Notice that function <code class="language-plaintext highlighter-rouge">@f</code> has 4 basic blocks (0, whose name is omitted, 6, 8 and 16) and function <code class="language-plaintext highlighter-rouge">@main</code> has only 1 basic block (0, whose name is omitted).</p>
+
+<p>Finally, we can run our pass with the following command:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>opt <span class="nt">-disable-output</span> <span class="nt">-load-pass-plugin</span> lib/libMyPass.so <span class="nt">-passes</span><span class="o">=</span><span class="s2">"my-pass"</span> a.ll
+</code></pre></div></div>
+
+<p>Note that since our pass isn’t included in the set of default passes of LLVM, we need to load our compiled pass with <code class="language-plaintext highlighter-rouge">-load-pass-plugin</code>. Also, <code class="language-plaintext highlighter-rouge">-disable-output</code> is saying to <code class="language-plaintext highlighter-rouge">opt</code> to not output our transformed IR file as a binary code. The output stream of the pass is not affected by this flag, as counter intuitive as it might sound.</p>
+
+<p>After executing, the expected output is:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>f 4
+main 1
+</code></pre></div></div>
+
+<p>Our pass have successfully analyzed the IR, which means it worked!</p>
+
+<h3 id="conclusion">Conclusion</h3>
+
+<p>Now you have your own LLVM pass. This is a very simple analysis pass, indeed, but the idea here was to explain the concepts of an LLVM pass and how to develop them, showing how to declare then, implement its function, link it into the LLVM and configure cmake for compiling it.</p>
+
+<p>But this is just the beginning. In the next post about LLVM pass implementation, we’ll work on a code transformation pass that will be more useful (Spoiler: we are gonna count how many times each edge in the CFG is traversed).</p>
+
+<p>If you have any questions about this post, remember that my email in on the <a href="/about">about</a> page.</p>
+
+<h3 id="references">References</h3>
+
+<ul>
+  <li>https://llvm.org/</li>
+  <li>https://llvm.org/doxygen/</li>
+</ul>]]></content><author><name></name></author><category term="LLVM" /><summary type="html"><![CDATA[Introduction]]></summary></entry><entry xml:lang="en"><title type="html">Introduction to Program Static Analysis - Intermediate Representation</title><link href="https://joao-frohlich.github.io/compilers/2024/11/03/intermediate-representation.html" rel="alternate" type="text/html" title="Introduction to Program Static Analysis - Intermediate Representation" /><published>2024-11-03T18:12:00-03:00</published><updated>2024-11-03T18:12:00-03:00</updated><id>https://joao-frohlich.github.io/compilers/2024/11/03/intermediate-representation</id><content type="html" xml:base="https://joao-frohlich.github.io/compilers/2024/11/03/intermediate-representation.html"><![CDATA[<h3 id="introduction">Introduction</h3>
 
 <p>So, it’s time for a first content post.</p>
 
