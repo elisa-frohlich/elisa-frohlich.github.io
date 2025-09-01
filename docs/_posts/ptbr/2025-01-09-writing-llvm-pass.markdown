@@ -23,31 +23,41 @@ Por fim, um pequeno resumo do que será abordado:
 
 ### LLVM
 
-A infraestrutura LLVM é um conjunto de ferramentas que permitem construir (e usar) diversos compiladores. Dentre as principais ferramentas, podemos destacar:
-- O núcleo da LLVM, que permite uma série de otimizações na etapa intermediária da compilação e a geração de código para a maioria das CPUs;
-- O compilador Clang, que é um compilador "nativo" da LLVM para C/C++; e
-- O projeto LLDB, que permite a debugação de código.
+A infraestrutura LLVM é um conjunto de ferramentas que permitem construir (e usar) diversos compiladores. Com ela, você pode construir um compilador muito eficiente para qualquer linguagem de programação sem **muito** esforço.
 
-Além disso, a LLVM também disponibiliza uma biblioteca padrão de C/C++ e uma representação intermediária de código, a LLVM IR. Quando se pensa no desenvolvimento de um compilador para uma linguagem  de programação qualquer utilizando a LLVM, normalmente o processo envolve transformar o código fonte em LLVM IR, e a partir daí apenas utilizar o conjunto de ferramentas da LLVM para gerar o código de máquina que será executado.
+Dentre as principais ferramentas, podemos destacar:
+- **O núcleo da LLVM**: que permite uma série de otimizações no programa fonte, e também permite a geração de código de máquina para diversas arquiteturas de CPU;
+- **O compilador Clang**, que é o compilador "nativo" da LLVM para C/C++; e
+- **As bibliotecas padrões libc/libc++**, que é uma implementação muito otimizada da biblioteca padrão de C/C++.
+
+Claro, existem outras ferramentas incríveis, e você pode dar uma olhada nelas no [site da LLVM](https://llvm.org)
+
+Porém, o que mais nos interessa agora é a representação intermediária da LLVM, a LLVM IR. Essa representação fica no meio termo entre uma linguagem de programação e uma linguagem assembly, e é muito útil para executar análises e transformações do código.
+
+Quando se pensa no desenvolvimento de um compilador para uma linguagem  de programação qualquer utilizando a LLVM, normalmente o processo envolve implementar o _front end_ do compilador para traduzir o código fonte para LLVM IR, e a partir daí usar o conjunto de ferramentas da LLVM para fazer umas magias no código e enfim gerar o código de máquina que será executado.
 
 ### Passes LLVM
 
-A infraestrutura LLVM é altamente modular. Parte da utilização dessa modularidade é feita a partir dos passes LLVM. Esses passes constituem um conjunto de otimizações desenvolvidas para serem aplicadas nos programas compilados pela LLVM, a partir da ferramenta `opt`, que faz parte do arcabouço da LLVM.
+A infraestrutura LLVM é altamente modular. Parte da utilização dessa modularidade é feita a partir dos passes LLVM. Eles são _plugins_ individuais que executam determinadas tarefas no código que está sendo compilado.
 
-Um passe LLVM recebe um programa como entrada e percorre (daí o nome passe) todo o programa, podendo coletar informações acerca dele ou modificá-lo. Por conta disso, um passe pode ser dividido em 3 categorias:
+Para executar um passe LLVM, você precisa executar a ferramenta `opt`, que faz parte do arcabouço da LLVM. Um passe LLVM recebe um programa como entrada e percorre (daí o nome passe) todo o programa, podendo coletar informações acerca dele ou modificá-lo.
 
-- Análise: passes que extraem informações de programas, de forma que essa informação possa ser utilizada por outros passes;
+Por conta disso, um passe pode ser dividido em 3 categorias:
+
+- Análise: passes que extraem informações de programas e disponibilizam elas para serem utilizadas por outros passes;
 - Transformação: passes que modificam o programa de alguma forma;
-- Utilidade: passes que fornecem alguma utilidade mas não se encaixam nem como passe de análise, nem como passe de transformação.
+- Utilidade: passes que fornecem alguma utilidade na visualização de informações do programa, mas que não se encaixam nem como passe de análise, nem como passe de transformação.
 
 Os passes podem operar sob diferentes níveis de hierarquia, porém normalmente trabalhamos com 2 tipos de hierarquias:
 
-- Módulos: representam partes de um programa e contêm funções, variáveis globais e metadados desta parte do programa;
+- Módulos: a grosso modo, representam um arquivo fonte do programa. Um módulo contêm funções, variáveis globais e metadados deste arquivo do programa;
 - Funções: representam as funções do programa, sendo que uma função contém uma assinatura (nome, parâmetros, tipo de retorno), blocos básicos (compostos por várias instruções), atributos e metadados.
 
 A partir disso, temos dois tipos de passes: passes de função (quando o passe percorre as funções do programa uma a uma) e passes de módulo (quando o passe percorre os módulos um a um).
 
-Por fim, a LLVM possui dois gerenciadores de passes diferentes: um legado (_Legacy Pass Manager_) e um novo (_New Pass Manager_ ou NPM), mas não entrarei em detalhes sobre o gerenciador legado. Todas as minhas postagens em que eu falar sobre passes LLVM, incluindo essa, sempre estará se referindo ao NPM.
+Por fim, um pequeno parênteses histórico: a LLVM possui dois gerenciadores de passes. O antigo é chamado de _Legacy Pass Manager_ (ou Gerenciador de Passe Legado), que foi descontinuado, e o novo é chamado de _New Pass Manager_ (Gerenciador de Passe Novo) ou NPM.
+
+Todas as minhas postagens em que eu falar sobre passes LLVM, incluindo essa, sempre estará se referindo ao NPM.
 
 ### Desenvolvendo um Passe
 
@@ -55,7 +65,9 @@ Além dos gerenciadores de passes, também existem duas formas diferentes de des
 
 Confesso que nunca escrevi um passe "dentro da árvore", mas a ideia é que você coloca o código do seu passe dentro da pasta da LLVM (por isso dentro da árvore) e, para compilar o passe, você recompila o `opt`.
 
-Então vamos nos contentar com a escrita de passes "fora da árvore", porque é a forma que eu conheço (e, até onde eu vi, considero muito mais elegante). A questão aqui é que você pode desenvolver esse passe no diretório que você quiser, apenas tendo que escrever um pouco de código a mais (que praticamente não muda entre passes e, quando muda, muda pouco). A estrutura do passe vai ter uma organização de arquivos bem simples de ser utilizada:
+Então vamos nos contentar com a escrita de passes "fora da árvore", porque é a forma que eu conheço (e, até onde eu vi, considero muito mais elegante). A questão aqui é que você pode desenvolver esse passe no diretório que você quiser, apenas tendo que escrever um pouco de código a mais (que praticamente não muda entre passes e, quando muda, muda pouco).
+
+A estrutura do passe vai ter uma organização de arquivos bem simples de ser utilizada:
 
 ```
 meu_passe/
@@ -72,11 +84,17 @@ meu_passe/
     +--CMakeLists.txt
 ```
 
-Note que, para escrever o passe, iremos utilizar o CMake como gerenciador de compilação do C++. Se você não sabe usar CMake, não tem problemas, porque vou mostrar só um jeito meio padrão de utilizar ele para compilar passes LLVM.
+Note que, para escrever o passe, iremos 
+usar C++ para a implementação e o CMake como gerenciador de compilação. Se você não sabe usar CMake, não tem problemas, porque vou mostrar um jeito meio padrão de utilizar ele para compilar passes LLVM.
 
-Perceba como temos, nessa estrutura, um arquivo de cabeçalho (`MeuPasse.h`) e dois arquivos de implementação (`MeuPasse.cpp` e `MeuPassePlugin.cpp`). Isso acontece porque `MeuPassePlugin.cpp` é onde o passe fará seu registro no conjunto de passes da LLVM (evidentemente, seu passe ficará disponível apenas localmente).
+Nessa estrutura, temos:
+- `MeuPasse.h`: nosso arquivo de cabeçalho;
+- `MeuPasse.cpp`: nosso arquivo de implementação; e
+- `MeuPassePlugin.cpp`: onde registraremos nosso passe no sistema de _plugins_ da LLVM, para que a aplicação `opt` consiga encontrá-lo.
 
-Pronto, agora temos uma organização de arquivos para começar a trabalhar, então vamos desenvolver um simples passe de análise: para cada função, vamos imprimir o nome dessa função e a quantidade de blocos básicos presentes nela. Note que, para isso, podemos desenvolver um passe de função, pois não precisamos observar a relação entre as funções e, portanto, podemos analisar cada função independentemente. Vou explicar detalhadamente como funciona o desenvolvimento de cada arquivo, começando pelo
+Para nosso primeiro passe, vamos desenvolver um simples passe de análise: para cada função, vamos imprimir o nome dessa função e a quantidade de blocos básicos presentes nela. Note que, para isso, podemos desenvolver um passe de função, pois podemos analisar cada função independentemente.
+
+Vou explicar agora detalhadamente como funciona o desenvolvimento de cada arquivo, começando pelo
 
 #### MeuPasse.h
 
@@ -102,9 +120,19 @@ public:
 
 Vamos comentar alguns detalhes mais a fundo.
 
-A classe `MeuPasse` herda da classe `PassInfoMixin`, que é uma classe [CRTP](https://en.cppreference.com/w/cpp/language/crtp.html) (_Curiously Recurrent Template Pattern_) que configura automaticamente um conjunto de informações necessários para a LLVM entender o seu passe. Além disso, a classe declara uma função: `run`, que é responsável pela execução do passe (quase como se fosse o equivalente a uma função `main` de um programa qualquer). Essa função retorna o tipo `PreservedAnalyses`, que será explicada no arquivo de implementação da classe, e tem como parâmetros uma referência para `Function &F` e uma referência para `FunctionAnalysisManager &FAM`. O tipo `Function` representa uma função de um programa na LLVM IR e o tipo `FunctionAnalysisManager` é  uma classe que gerencia a execução de diversas análises para o tipo `Function`.
+A classe `MeuPasse` herda da classe `PassInfoMixin`, que é uma exemplo de uma classe modelo [CRTP](https://en.cppreference.com/w/cpp/language/crtp.html) (_Curiously Recurrent Template Pattern_). Esse modelo de classe parece estranho a princípio, mas é um truque muito interessante que permite a configuração automática de um conjunto de informações necessários para a LLVM entender o seu passe.
 
-Por fim, note que estamos declarando a função dentro do `namespace llvm`. Fazemos isso porque o passe precisa ser declarado como uma classe dentro deste namespace (portanto ficando algo como `llvm::MeuPasse` quando "visto de fora"). Agora, tendo explicado a declaração da classe, vamos ver a implementação da função `run`.
+Essa classe declara apenas uma função: `run`, que é responsável pela execução do passe (quase que equivalente a uma função `main` de um programa qualquer).
+
+Essa função possui a seguinte assinatura:
+- Recebe dois parâmetros:
+    1. `Function &F`: Uma referência para a função em LLVM IR que o passe está analisando
+    2. `FunctionAnalysisManager &FAM`: Uma referência para um objeto que gerencia a execução de diferentes análises para um objeto do tipo `Function`.
+- Retorna um objeto do tipo `PreservedAnalyses`, que será explicado mais pra frente.
+
+Por fim, note que estamos declarando a classe dentro do `namespace llvm`. Fazemos isso porque o passe precisa ser declarado como uma classe dentro deste namespace para ser devidamente integrado à LLVM (portanto ficando algo como `llvm::MeuPasse` quando "visto de fora").
+
+Agora, tendo explicado a declaração da classe, vamos ver a implementação da função `run`.
 
 #### MeuPasse.cpp
 
@@ -119,18 +147,20 @@ Para nossa sorte, todas essas informações podem ser facilmente acessadas e, de
 
 using namespace llvm;
 
-PreservedAnalyses MeuPass::run(Function &F,
+PreservedAnalyses MeuPasse::run(Function &F,
                                 FunctionAnalysisManager &FAM) {
     outs() << F.getName() << " " << F.size() << "\n";
     return PreservedAnalyses::all();
 }
 ```
 
-Nessa função, estamos utilizando a função `outs()` da LLVM, que é quase equivalente ao `cout` da biblioteca `iostream`, mas com alguns extras, como por exemplo uma definição para imprimir o tipo `StringRef` da llvm, que é o tipo de retorno da função `getName()`.
+Nessa função, estamos utilizando a função `outs()`, que usa o formato de saída da LLVM. Esse formato é quase equivalente ao da função `std::cout` da biblioteca `iostream`, mas otimizado para lidar com os tipos da LLVM, sendo capaz de lidar com o tipo `StringRef`, que é o tipo de retorno da função `getName()`.
 
-A função `getName()` da classe `Function` retorna o nome da função, enquanto que a função `size()` retorna o número de blocos básicos da função. 
+A método `getName()` da classe `Function` retorna o nome da função, enquanto que o método `size()` retorna o número de blocos básicos da função. 
 
-Por fim, note que retornamos `PreservedAnalyses::all()`, então vamos explicar o que é o tipo `PreservedAnalyses`. Esse tipo representa um conjunto de análises que são preservadas pelo nosso passe, e fornece implementações que garantem que as análises declaradas como preservadas são, de fato... preservadas. Nesse contexto, a função `all()` indica que nosso passe garante que **todas** as análises são preservadas. Num passe de análise, isso normalmente vai ser sempre verdade, porém quando lidarmos com passes de transformação, existe sim a possibilidade de algumas análises não serem preservadas.
+Por fim, retornamos `PreservedAnalyses::all()`, então vamos explicar o que é o tipo `PreservedAnalyses`. Esse tipo representa um conjunto de análises que afirmamos que nosso passe preserva. Nesse contexto, a função `all()` indica que nosso passe garante que **todas** as análises são preservadas.
+
+Num passe de análise, normalmente é garantido que todas as análises são preservadas, porém quando lidarmos com passes de transformação, existe sim a possibilidade de algumas análises não serem preservadas.
 
 
 > Extra: para ir além do básico do básico, vou mostrar como iterar pelos blocos básicos da função para obter o número de instruções presentes na função:
@@ -168,7 +198,7 @@ bool registerPipeline(StringRef Name, FunctionPassManager &FPM,
 }
 ```
 
-Nessa função, estamos dizendo que, quando o `opt` for executado pedindo para executar o passe `meu-passe`, será registrado um pipeline composto pelo passe `MeuPasse()`. Note que `MeuPasse()` é a função construtora da classe `MeuPasse` que definimos anteriormente. Além disso, é possível adicionar novos passes no pipeline, como `LoopSimplifyPass()`, por exemplo. A ordem com que esses passes são adicionados importa, pois eles serão executados na ordem em que foram adicionados ao pipeline.
+Nessa função, estamos dizendo que, quando o `opt` for executado pedindo para executar o passe `meu-passe`, será registrado um pipeline composto pelo passe `MeuPasse()`. Note que `MeuPasse()` é a função construtora da classe `MeuPasse` que definimos anteriormente. O valor de retorno da função indica se o passe `meu-passe` foi encontrado ou não. Além disso, é possível definir um pipeline modificado com múltiplos passes, os quais serão executados na ordem em que forem adicionados.
 
 ```cpp
 PassPluginLibraryInfo getMeuPasse() {
@@ -181,7 +211,9 @@ PassPluginLibraryInfo getMeuPasse() {
 }
 ```
 
-Aqui, estamos declarando uma função que diz como o passe deve ser carregado. O tipo `PassPluginLibraryInfo` é, nesse caso, uma struct que contém a versão da API da LLVM do plugin, o nome do passe, a versão da LLVM, e uma função que registra a pipeline do passe (nesse caso, a função que implementamos acima). Por fim, indicamos como inicializar o plugin (que diz como o passe será carregado) com:
+Aqui, estamos definindo uma função que diz como o passe deve ser carregado. O tipo `PassPluginLibraryInfo` é, nesse caso, uma struct que contém a versão da API da LLVM do plugin, o nome do passe, a versão da LLVM, e uma função que registra a pipeline do passe (nesse caso, a função que implementamos acima).
+
+Por fim, indicamos como inicializar o plugin (que diz como o passe será carregado) com:
 
 ```cpp
 extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo
@@ -205,7 +237,7 @@ cmake_minimum_required(VERSION 3.20)
 project(MeuPasseLegal)
 ```
 
-Agora vem um monte de código pra configurar a LLVM e configurar que queremos usar o C++17, que eu não vou explicar em detalhes:
+Agora vem um monte de código pra dizer onde encontrar os cabeçalhos da LLVM e configurar algumas _flags_ de compilação. Inclusive, isso é meio padrão pra qualquer passe fora da árvore:
 
 ```cmake
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "")
@@ -225,7 +257,7 @@ endif()
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 ```
 
-Depois, vamos mostrar como compilar nosso código. Primeiro, definimos uma biblioteca de nome `MeuPasse` do tipo `MODULE`, com as implementações do passe:
+Depois, vamos mostrar como o CMake deve compilar nosso código. Primeiro, definimos uma biblioteca de nome `MeuPasse` do tipo `MODULE`, com as implementações do passe:
 
 ```cmake
 add_library(MeuPasse MODULE
@@ -233,7 +265,7 @@ add_library(MeuPasse MODULE
     lib/MeuPassePlugin.cpp)
 ```
 
-Por fim, dizemos onde essa biblioteca `MeuPasse` deve buscar os arquivos de cabeçalho:
+Por fim, dizemos onde a biblioteca `MeuPasse` deve buscar os arquivos de cabeçalho:
 
 ```cmake
 target_include_directories(MeuPasse PRIVATE
@@ -242,11 +274,11 @@ target_include_directories(MeuPasse PRIVATE
 
 Dessa forma, permitimos que o arquivo `MeuPasse.cpp` enxergue o cabeçalho `MeuPasse.h` sem precisar descrever o caminho exato para ele (que, relativo a `MeuPasse.cpp`, seria `../include/MeuPasse.h`). Lembre que, quando incluímos este cabeçalho neste arquivo, o fizemos apenas com `#include "MeuPasse.h"`.
 
-Pronto, agora nós temos um passe implementado, com instruções de como registrar ele no pipeline de passes da LLVM, e um arquivo CMake configurado para compilar o passe. Agora, vamos testar se isso tudo funciona.
+Pronto, agora nós temos um passe implementado, com instruções de como registrar ele no pipeline de passes da LLVM, e um arquivo CMake configurado para compilar o passe. Vamos enfim testar se isso tudo está funcionando.
 
 ### Testando um Passe
 
-Vamos começar pelo mais importante, que é compilar o passe. Para isso, vamos utilizar o CMake e compilar o passe numa pasta `build`:
+Vamos começar pelo mais importante, que é compilar o passe. Para isso, vamos utilizar o CMake para gerar os arquivos de configuração numa pasta chamada `build`:
 
 ```bash
 mkdir build
@@ -254,13 +286,13 @@ cd build
 cmake ..
 ```
 
-Com isso, o CMake irá gerar os arquivos de compilação. Agora, vamos compilar executando:
+Agora, vamos compilar com _Unix Makefiles_ executando:
 
 ```bash
 make
 ```
 
-Se tudo der certo (e você não tiver mexido na variável `CMAKE_LIBRARY_OUTPUT_DIRECTORY`, o seu passe compilado estará no arquivo `lib/libMeuPasse.so` dentro da pasta `build`).
+Se tudo der certo (e você não tiver mexido na variável `CMAKE_LIBRARY_OUTPUT_DIRECTORY`), o seu passe compilado estará no arquivo `lib/libMeuPasse.so` dentro da pasta `build`.
 
 Agora queremos executar, certo? Bom, primeiro, precisamos de um código para isso. Lembre que fizemos um passe para analisar **códigos**. Vamos usar o código a seguir (que vou nomeá-lo preguiçosamente de `a.c`), com uma função recursiva pra calcular o n-ésimo termo da sequência de Fibonacci recursivamente:
 
@@ -319,7 +351,7 @@ Perceba que a função `f` possui 4 blocos básicos (0, que é omitido, 6, 8 e 1
 opt -disable-output -load-pass-plugin lib/libMeuPasse.so -passes="meu-passe" a.ll
 ```
 
-Perceba que, como nosso passe não está incluso no conjunto de passes presentes na árvore da LLVM, precisamos carregar o arquivo compilado do nosso passe com `-load-pass-plugin ...`.
+Note que, como nosso passe não está incluso no conjunto de passes padrões da LLVM, precisamos carregar o arquivo compilado do nosso passe com `-load-pass-plugin`. Além disso, `-disable-output` fala para o `opt` não imprimir o arquivo transformado como um código binário. A saída do passe com a função `outs()` não é afetada por essa _flag_, por mais contraintuitivo que pareça.
 
 Ao executar, a saída esperada é:
 ```
@@ -327,9 +359,15 @@ f 4
 main 1
 ```
 
+Nosso passe conseguiu analisar o programa, então parece que funcionou!
+
 ### Conclusão
 
-Enfim, temos um passe da LLVM. Note que esse é um passe de análise muito simples, que não nos diz quase nada. De todo modo, a ideia era tentar explicar o conceito dos passes e como desenvolver um. Na próxima postagem sobre construção de passes LLVM, vou tentar explicar como fazer um passe de transformação de código que faz algo um pouco mais útil (spoiler: vamos contar quantas vezes cada aresta do CFG é atravessada). Caso tenha dúvidas e queira conversar sobre o assunto, lembre que meu email está no [sobre]({{ "/about" | relative_url }}). Até (espero) breve.
+Enfim, temos um passe da LLVM. Note que esse é um passe de análise muito simples, que não nos diz quase nada. De todo modo, a ideia era tentar explicar o conceito dos passes e como desenvolver um, mostrando como declarar ele, implementar as funções necessárias, integrar ele à LLVM e configurar o CMake para compilar o passe.
+
+Mas isso é só o começo. Na próxima postagem sobre construção de passes LLVM, vou tentar explicar como fazer um passe de transformação de código que faz algo um pouco mais útil (Spoiler: vamos contar quantas vezes cada aresta do CFG é atravessada).
+
+Caso tenha dúvidas e queira conversar sobre o assunto, lembre que meu email está no [sobre]({{ "/about" | relative_url }}). Até (espero) breve.
 
 ### Referências
 
