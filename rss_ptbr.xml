@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>João Vitor Fröhlich</title>
+    <title>Elisa Fröhlich</title>
     <description>Um blog pessoal sobre compiladores e algumas outras coisas interessantes</description>
-    <link href="https://joao-frohlich.github.io/rss_ptbr.xml" rel="self"/>
-    <link href="https://joao-frohlich.github.io/"/>
-    <pubDate>31/08/25</pubDate>
-    <lastBuildDate>31/08/25</lastBuildDate>
+    <link href="https://elisa-frohlich.github.io/rss_ptbr.xml" rel="self"/>
+    <link href="https://elisa-frohlich.github.io/"/>
+    <pubDate>11/03/26</pubDate>
+    <lastBuildDate>11/03/26</lastBuildDate>
     <generator>Jekyll v3.10.0</generator>
     
      
@@ -366,8 +366,8 @@ main 1
 &lt;/ul&gt;
 </description>
         <pubDate>09/08/25</pubDate>
-        <link>https://joao-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass.html</link>
-        <guid isPermaLink="true">https://joao-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass.html</guid>
+        <link>https://elisa-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass.html</link>
+        <guid isPermaLink="true">https://elisa-frohlich.github.io/llvm/2025/08/09/writing-llvm-pass.html</guid>
         
         
         <category>LLVM</category>
@@ -513,8 +513,8 @@ ret r
 &lt;p&gt;If you want more material, you can check the &lt;a href=&quot;https://homepages.dcc.ufmg.br/~fernando/classes/dcc888/biblio.html&quot;&gt;bibliography of the same course&lt;/a&gt;.&lt;/p&gt;
 </description>
         <pubDate>03/11/24</pubDate>
-        <link>https://joao-frohlich.github.io/compilers/2024/11/03/intermediate-representation.html</link>
-        <guid isPermaLink="true">https://joao-frohlich.github.io/compilers/2024/11/03/intermediate-representation.html</guid>
+        <link>https://elisa-frohlich.github.io/compilers/2024/11/03/intermediate-representation.html</link>
+        <guid isPermaLink="true">https://elisa-frohlich.github.io/compilers/2024/11/03/intermediate-representation.html</guid>
         
         
         <category>Compilers</category>
@@ -546,11 +546,11 @@ ret r
 
 &lt;p&gt;Where to find me:&lt;/p&gt;
 
-&lt;p&gt;&lt;a href=&quot;https://github.com/joao-frohlich&quot;&gt;github&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/elisa-frohlich&quot;&gt;github&lt;/a&gt;&lt;/p&gt;
 </description>
         <pubDate>02/11/24</pubDate>
-        <link>https://joao-frohlich.github.io/about/2024/11/02/welcome-to-my-blog.html</link>
-        <guid isPermaLink="true">https://joao-frohlich.github.io/about/2024/11/02/welcome-to-my-blog.html</guid>
+        <link>https://elisa-frohlich.github.io/about/2024/11/02/welcome-to-my-blog.html</link>
+        <guid isPermaLink="true">https://elisa-frohlich.github.io/about/2024/11/02/welcome-to-my-blog.html</guid>
         
         
         <category>About</category>
