@@ -21,4 +21,4 @@ About me:
 
 Where to find me:
 
-[github](https://github.com/joao-frohlich)
+[github](https://github.com/elisa-frohlich)

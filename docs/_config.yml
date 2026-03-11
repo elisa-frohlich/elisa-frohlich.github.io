@@ -19,9 +19,9 @@
 # in the templates via {{ site.myvariable }}.
 
 title:
-  en: João Vitor Fröhlich
-  ptbr: João Vitor Fröhlich
-email: joaovitorfrohlich@gmail.com
+  en: Elisa Fröhlich
+  ptbr: Elisa Fröhlich
+email: elisaa.frohlich@gmail.com
 description:
   en: A personal blog about compilers and other interesting computer science stuff
   ptbr: Um blog pessoal sobre compiladores e algumas outras coisas interessantes
@@ -29,9 +29,9 @@ date_formats:
   en: "%b. %e, %Y"
   ptbr: "%d/%m/%y"
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://joao-frohlich.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://elisa-frohlich.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 # twitter_username: jekyllrb
-github_username:  joao-frohlich
+github_username:  elisa-frohlich
 
 # Top menu order
 header_pages:
